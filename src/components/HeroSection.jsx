@@ -1,18 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { hero } from "../data/content";
 
+function hasTouch() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(hover: none)").matches || "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
 export default function HeroSection() {
   const [showSansBg, setShowSansBg] = useState(false);
-  const [isTouchOnly, setIsTouchOnly] = useState(
-    () => (typeof window !== "undefined" ? window.matchMedia("(hover: none)").matches : false)
-  );
+  const [isTouchOnly, setIsTouchOnly] = useState(() => hasTouch());
   const [parallaxY, setParallaxY] = useState(0);
   const reduceMotion = useRef(false);
   const coverRef = useRef(null);
+  const lastTouchRef = useRef(0);
 
   useEffect(() => {
     const mq = window.matchMedia("(hover: none)");
-    const fn = () => setIsTouchOnly(mq.matches);
+    const fn = () => setIsTouchOnly(hasTouch());
+    fn();
     mq.addEventListener("change", fn);
     return () => mq.removeEventListener("change", fn);
   }, []);
@@ -33,14 +38,15 @@ export default function HeroSection() {
 
   useEffect(() => {
     if (!isTouchOnly || !showSansBg) return;
-    const closeOnClickOutside = (e) => {
-      if (coverRef.current && !coverRef.current.contains(e.target)) setShowSansBg(false);
+    const closeOnOutside = (e) => {
+      const target = e.target;
+      if (coverRef.current && !coverRef.current.contains(target)) setShowSansBg(false);
     };
-    document.addEventListener("click", closeOnClickOutside);
-    document.addEventListener("touchend", closeOnClickOutside, { passive: true });
+    document.addEventListener("click", closeOnOutside);
+    document.addEventListener("touchend", closeOnOutside, { passive: true });
     return () => {
-      document.removeEventListener("click", closeOnClickOutside);
-      document.removeEventListener("touchend", closeOnClickOutside);
+      document.removeEventListener("click", closeOnOutside);
+      document.removeEventListener("touchend", closeOnOutside);
     };
   }, [isTouchOnly, showSansBg]);
 
@@ -60,7 +66,15 @@ export default function HeroSection() {
           <div
             className={`hero-cover-flip group w-full rounded-2xl overflow-hidden bg-cream ring-4 ring-gold/80 shadow-[0_20px_50px_-15px_rgba(139,94,60,0.25),0_8px_20px_-8px_rgba(26,26,26,0.15)] relative ${isTouchOnly ? "cursor-pointer touch-manipulation" : ""}`}
             {...(isTouchOnly && {
-              onClick: () => setShowSansBg((s) => !s),
+              onClick: (e) => {
+                if (Date.now() - lastTouchRef.current < 400) return;
+                setShowSansBg((s) => !s);
+              },
+              onTouchEnd: (e) => {
+                e.preventDefault();
+                lastTouchRef.current = Date.now();
+                setShowSansBg((s) => !s);
+              },
               onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowSansBg((s) => !s); } },
               role: "button",
               tabIndex: 0,
@@ -71,7 +85,7 @@ export default function HeroSection() {
             <img
               src="/couverture.webp"
               alt="Couverture du roman La Piratesse — Louise Antonini en aventure sur la mer"
-              className="w-full aspect-[2/3] object-cover block"
+              className={`w-full aspect-[2/3] object-cover block ${isTouchOnly ? "pointer-events-none" : ""}`}
               width={320}
               height={480}
               loading="eager"
