@@ -8,12 +8,18 @@ export default function HeroSection() {
   );
   const [parallaxY, setParallaxY] = useState(0);
   const reduceMotion = useRef(false);
+  const coverRef = useRef(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(hover: none)");
     const fn = () => setIsTouchOnly(mq.matches);
     mq.addEventListener("change", fn);
     return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = "/couverture-sans-bg.png";
   }, []);
 
   useEffect(() => {
@@ -25,6 +31,19 @@ export default function HeroSection() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!isTouchOnly || !showSansBg) return;
+    const closeOnClickOutside = (e) => {
+      if (coverRef.current && !coverRef.current.contains(e.target)) setShowSansBg(false);
+    };
+    document.addEventListener("click", closeOnClickOutside);
+    document.addEventListener("touchend", closeOnClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener("click", closeOnClickOutside);
+      document.removeEventListener("touchend", closeOnClickOutside);
+    };
+  }, [isTouchOnly, showSansBg]);
+
   return (
     <section
       id="hero"
@@ -34,6 +53,7 @@ export default function HeroSection() {
       <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center text-center gap-6 md:flex-row md:text-left md:items-center md:justify-center md:gap-14 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16 lg:items-center lg:max-w-6xl">
         {/* Couverture — parallax au scroll + flip 3D ; desktop: hover ; mobile/touch: clic pour sans fond */}
         <div
+          ref={coverRef}
           className="hero-cover-perspective hero-stagger-1 w-52 sm:w-60 md:w-72 lg:w-80 lg:justify-self-end"
           style={{ transform: `translateY(${parallaxY}px)` }}
         >
@@ -45,7 +65,7 @@ export default function HeroSection() {
               role: "button",
               tabIndex: 0,
               "aria-pressed": showSansBg,
-              "aria-label": "Afficher la couverture sans fond",
+              "aria-label": showSansBg ? "Revenir à la couverture normale" : "Afficher la couverture sans fond",
             })}
           >
             <img
