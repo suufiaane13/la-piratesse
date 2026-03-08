@@ -65,7 +65,7 @@ export const characters = [
   {
     id: "louise",
     name: "Louise Antonini",
-    alias: "Louis",
+    alias: null,
     emoji: "⭐",
     role: "L'héroïne du roman",
     description:
